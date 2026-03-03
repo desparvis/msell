@@ -1448,6 +1448,12 @@ def batch_list():
                            start_date=start_date_str, 
                            end_date=end_date_str)
 
+@app.route('/init-db-once')
+def init_db_once():
+    with app.app_context():
+        db.create_all()
+    return "Database initialized on Supabase!"
+
 @app.route('/logout')
 def logout():
     """Logs out the user by clearing the session."""
