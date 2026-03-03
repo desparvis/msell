@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Update Product: {{ product.name }}{% endblock %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    body { font-family: 'Inter', sans-serif; letter-spacing: -0.02em; background-color: #fbfbfd; }
+    .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.05); }
+    .apple-input { 
+        background: #f5f5f7; 
+        border: 1.5px solid transparent; 
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .apple-input:focus { 
+        background: #ffffff; 
+        border-color: #007aff; 
+        box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1); 
+    }
+    .label-caps { font-size: 10px; font-weight: 800; color: #86868b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .delete-mark { filter: grayscale(1) opacity(0.3) blur(1px); border: 2px solid #ff3b30 !important; }
+    .custom-scroll::-webkit-scrollbar { height: 4px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+</style>
+
+<div class="max-w-4xl mx-auto px-4 pb-20">
+    <header class="pt-10 pb-8">
+        <a href="{{ url_for('products') }}" class="text-blue-600 font-bold text-sm mb-3 inline-block hover:underline">← Back to Inventory</a>
+        <h1 class="text-4xl font-black text-black tracking-tight leading-tight">Edit Product</h1>
+        <p class="text-gray-400 font-medium">Updating details for <span class="text-black font-bold">{{ product.name }}</span></p>
+    </header>
+
+    <div class="glass-card p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-gray-100">
+        <form id="update-form" method="POST" action="{{ url_for('update_product', product_id=product.id) }}" enctype="multipart/form-data">
+            
+            <input type="hidden" id="images_to_delete" name="images_to_delete" value="">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+
+                <div class="space-y-2">
+                    <label for="name" class="label-caps ml-1">Product Name</label>
+                    <input type="text" id="name" name="name" required value="{{ product.name }}"
+                        class="apple-input w-full p-4 rounded-2xl outline-none font-semibold text-gray-800">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="category_id" class="label-caps ml-1">Category</label>
+                    <select id="category_id" name="category_id" required
+                        class="apple-input w-full p-4 rounded-2xl outline-none font-semibold text-gray-800 appearance-none">
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category.id == product.category_id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="space-y-2">
+                    <label for="units" class="label-caps ml-1">Initial Stock (Units)</label>
+                    <input type="number" id="units" name="units" min="1" step="1" value="{{ product.units | default(1) }}" 
+                        {% if total_sold > 0 %}disabled readonly{% endif %}
+                        class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-gray-800 {% if total_sold > 0 %} opacity-50 cursor-not-allowed {% endif %}">
+                    {% if total_sold > 0 %}
+                        <p class="text-[10px] font-bold text-red-500 uppercase px-1 mt-1">Locked: {{ total_sold }} units sold</p>
+                    {% endif %}
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="label-caps ml-1">Product Photos</label>
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <div class="flex items-center gap-3 custom-scroll overflow-x-auto pb-2">
+                            <input type="file" id="new_product_images" name="new_product_images" multiple accept="image/*" class="hidden">
+                            
+                            <label for="new_product_images" class="flex-shrink-0 cursor-pointer bg-white border border-dashed border-gray-300 hover:border-blue-400 text-[10px] font-black uppercase px-4 py-3 rounded-xl transition shadow-sm flex flex-col items-center justify-center min-w-[65px]">
+                                <span class="text-blue-600 text-lg">+</span>
+                                <span>Add</span>
+                            </label>
+                            
+                            <div id="existing-images-container" class="flex gap-2">
+                                {% set current_urls = (product.image_urls or "").split(',') | map('trim') | select | list %}
+                                {% set current_ids = (product.image_public_ids or "").split(',') | map('trim') | select | list %}
+                                {% for url in current_urls %}
+                                    {% set image_id = current_ids[loop.index0] if loop.index0 < current_ids | length else '' %}
+                                    <div class="image-thumbnail relative flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-gray-200 shadow-sm" data-id="{{ image_id }}">
+                                        <img src="{{ url }}" class="w-full h-full object-cover">
+                                        <button type="button" class="delete-image-btn absolute inset-0 bg-red-500/0 hover:bg-red-500/80 text-transparent hover:text-white flex items-center justify-center text-[10px] font-bold transition">Delete</button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <div id="new-files-preview" class="flex gap-2 border-l border-gray-200 pl-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2 border-t border-gray-100 pt-8 mt-2">
+                    <h3 class="text-xl font-black text-black tracking-tight mb-4">Pricing Details</h3>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="label-caps ml-1">Unit Price (Buying Price)</label>
+                    <div class="relative">
+                        <input type="text" id="price_foreign_display" required
+                            value="{{ "{:,.2f}".format(product.price_foreign | default(0.0)) }}"
+                            class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-lg text-gray-800 price-comma">
+                        <input type="hidden" id="price_foreign" name="price_foreign" value="{{ product.price_foreign | default(0.0) }}">
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="label-caps ml-1">Currency</label>
+                    {% set cur_is_main = product.currency in main_currencies %}
+                    <div id="currency-main-group" class="{% if not cur_is_main %}hidden{% endif %}">
+                        <select id="currency_main" name="currency" {% if not cur_is_main %}disabled{% endif %}
+                            class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-gray-800 appearance-none">
+                            {% for currency in main_currencies %}
+                                <option value="{{ currency }}" {% if currency == product.currency %}selected{% endif %}>{{ currency }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" id="show-other-btn" class="text-[10px] text-blue-600 font-bold uppercase mt-2 ml-1 hover:underline">Show all currencies</button>
+                    </div>
+                    <div id="currency-other-group" class="{% if cur_is_main %}hidden{% endif %}">
+                        <select id="currency_other" name="currency" {% if cur_is_main %}disabled{% endif %}
+                            class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-gray-800 appearance-none">
+                            {% for currency in other_currencies %}
+                                <option value="{{ currency }}" {% if currency == product.currency %}selected{% endif %}>{{ currency }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" id="hide-other-btn" class="text-[10px] text-red-500 font-bold uppercase mt-2 ml-1 hover:underline">Back to main</button>
+                    </div>
+                </div>
+
+            </div> 
+
+            <div class="mt-12">
+                <button type="submit" id="submit-btn"
+                    class="w-full bg-black text-white font-black uppercase tracking-widest text-xs py-6 rounded-2xl shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all">
+                    Update Product Information
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // 1. New File Previews
+        const fileInput = document.getElementById('new_product_images');
+        const filePreview = document.getElementById('new-files-preview');
+
+        fileInput.addEventListener('change', function() {
+            filePreview.innerHTML = ''; 
+            Array.from(this.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = "w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 overflow-hidden flex-shrink-0 relative";
+                    div.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                    filePreview.appendChild(div);
+                }
+                reader.readAsDataURL(file);
+            });
+        });
+
+        // 2. Comma Formatting
+        function formatNumber(n) {
+            return n.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        const commaInputs = document.querySelectorAll('.price-comma');
+        commaInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                let actualId = this.id.replace('_display', '');
+                let hiddenInput = document.getElementById(actualId);
+                let rawValue = this.value.replace(/,/g, '');
+                hiddenInput.value = rawValue;
+                if (rawValue !== "") {
+                    this.value = formatNumber(rawValue);
+                }
+            });
+        });
+
+        // 3. Currency Toggling
+        const mainGroup = document.getElementById('currency-main-group'), 
+              otherGroup = document.getElementById('currency-other-group'),
+              mainSelect = document.getElementById('currency_main'), 
+              otherSelect = document.getElementById('currency_other');
+
+        document.getElementById('show-other-btn').onclick = () => {
+            mainGroup.classList.add('hidden'); otherGroup.classList.remove('hidden');
+            mainSelect.disabled = true; otherSelect.disabled = false;
+        };
+        document.getElementById('hide-other-btn').onclick = () => {
+            otherGroup.classList.add('hidden'); mainGroup.classList.remove('hidden');
+            otherSelect.disabled = true; mainSelect.disabled = false;
+        };
+
+        // 4. Image Deletion
+        const deleteInput = document.getElementById('images_to_delete');
+        let toDelete = [];
+
+        document.querySelectorAll('.delete-image-btn').forEach(btn => {
+            btn.onclick = function() {
+                const thumb = this.closest('.image-thumbnail');
+                const id = thumb.dataset.id.trim();
+                if(!id) return;
+
+                if(thumb.classList.toggle('delete-mark')) {
+                    toDelete.push(id);
+                    this.textContent = 'Undo';
+                    this.classList.add('bg-red-500/80');
+                } else {
+                    toDelete = toDelete.filter(i => i !== id);
+                    this.textContent = 'Delete';
+                    this.classList.remove('bg-red-500/80');
+                }
+                deleteInput.value = toDelete.join(',');
+            };
+        });
+
+        // 5. Submit State
+        document.getElementById('update-form').onsubmit = function() {
+            const btn = document.getElementById('submit-btn');
+            btn.innerText = "Saving Changes...";
+            btn.style.opacity = "0.7";
+            btn.style.pointerEvents = "none";
+        };
+    });
+</script>
+{% endblock %}

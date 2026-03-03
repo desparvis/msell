@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Sales History — Msell{% endblock %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    body { 
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+        letter-spacing: -0.02em; 
+        background-color: #fbfbfd;
+    }
+    
+    .glass-card { 
+        background: rgba(255, 255, 255, 0.8); 
+        backdrop-filter: blur(20px); 
+        border: 1px solid rgba(0,0,0,0.05); 
+    }
+
+    /* Print Optimization */
+    @media print {
+        nav, .no-print, .floating-summary, button, form { display: none !important; }
+        body { background: white !important; padding: 0 !important; }
+        .max-w-7xl { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
+        .sales-container { border-radius: 0 !important; border: none !important; box-shadow: none !important; }
+        .print-header { display: block !important; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+        .profit-text { color: black !important; font-weight: bold !important; }
+    }
+    .print-header { display: none; }
+</style>
+
+<div class="max-w-7xl mx-auto px-4 pb-32">
+    
+    <div class="print-header">
+        <h1 class="text-3xl font-black italic">MSELL INVENTORY REPORT</h1>
+        <p class="text-sm font-bold text-gray-500 uppercase tracking-widest">Generated on: {{ now.strftime('%Y-%m-%d %H:%M') if now else '2026-02-27' }}</p>
+    </div>
+
+    <header class="py-10 flex flex-col md:flex-row justify-between items-center gap-6 no-print">
+        <div class="flex items-center space-x-6">
+            <a href="{{ url_for('dashboard') }}" class="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center hover:bg-black hover:text-white transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path d="M15.75 19.5L8.25 12l7.5-7.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </a>
+            <div class="flex items-baseline space-x-3">
+                <h1 class="text-5xl font-black text-black tracking-tighter">Sales</h1>
+                <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full border border-blue-100 uppercase tracking-widest">
+                    {{ sales | length }} Records
+                </span>
+            </div>
+        </div>
+
+        <form action="{{ url_for('sales_history') }}" method="GET" class="flex items-center space-x-2 bg-gray-200/30 p-1.5 rounded-full border border-gray-100">
+            <select name="days" onchange="this.form.submit()" class="bg-transparent text-[10px] font-black uppercase px-4 py-2 outline-none cursor-pointer">
+                <option value="all" {% if current_days == 'all' %}selected{% endif %}>All Time</option>
+                <option value="1" {% if current_days == '1' %}selected{% endif %}>Today</option>
+                <option value="7" {% if current_days == '7' %}selected{% endif %}>Last 7 Days</option>
+            </select>
+            <div class="w-px h-4 bg-gray-300"></div>
+            <select name="sort" onchange="this.form.submit()" class="bg-transparent text-[10px] font-black uppercase px-4 py-2 outline-none cursor-pointer">
+                <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest First</option>
+                <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+            </select>
+        </form>
+    </header>
+
+    <div class="sales-container bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="bg-gray-50/50 border-b border-gray-100">
+                    <th class="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Product Details</th>
+                    <th class="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Timestamp</th>
+                    <th class="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">Qty</th>
+                    <th class="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Revenue</th>
+                    <th class="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Net Profit</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for sale in sales %}
+                <tr class="group transition-colors hover:bg-gray-50/50">
+                    <td class="px-8 py-7">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center font-black text-gray-400 text-xs no-print">
+                                {{ sale.product.name[0] | upper }}
+                            </div>
+                            <div>
+                                <p class="text-sm font-black text-gray-900">{{ sale.product.name }}</p>
+                                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                                    {{ sale.product.category_info.name if sale.product.category_info else 'General Inventory' }}
+                                </p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-8 py-7">
+                        <p class="text-sm font-bold text-gray-900">{{ sale.sold_at.strftime('%d %b %Y') }}</p>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">{{ sale.sold_at.strftime('%I:%M %p') }}</p>
+                    </td>
+                    <td class="px-8 py-7 text-center">
+                        <span class="text-xs font-black text-gray-900 bg-gray-100 px-3 py-1 rounded-lg">{{ sale.units_sold }}</span>
+                    </td>
+                    <td class="px-8 py-7 text-right">
+                        <p class="text-sm font-black text-gray-900">{{ "{:,.0f}".format(sale.total_sale_price_rwf) }}</p>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase">RWF Total</p>
+                    </td>
+                    <td class="px-8 py-7 text-right">
+                        <p class="text-sm font-black profit-text {% if sale.calculated_profit >= 0 %}text-green-600{% else %}text-red-500{% endif %}">
+                            {% if sale.calculated_profit >= 0 %}+{% endif %}{{ "{:,.0f}".format(sale.calculated_profit) }}
+                        </p>
+                        <div class="flex items-center justify-end gap-1">
+                            {% if sale.calculated_profit < 0 %}
+                                <svg class="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                            {% endif %}
+                            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter italic">Net Earnings</p>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="py-32 text-center text-gray-400 font-bold uppercase tracking-widest">
+                        No transactions found for this period.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="floating-summary fixed bottom-10 left-1/2 -translate-x-1/2 glass-card border border-gray-200 px-8 py-5 rounded-[2rem] shadow-2xl flex items-center space-x-10 no-print">
+        <div class="hidden sm:block">
+            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total Revenue</p>
+            <p class="text-xl font-black text-black">
+                {{ "{:,.0f}".format(total_revenue) }} <span class="text-xs font-bold opacity-30">RWF</span>
+            </p>
+        </div>
+        <div class="h-8 w-px bg-gray-200 hidden sm:block"></div>
+        <div>
+            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total Net Profit</p>
+            <p class="text-xl font-black text-green-600">
+                {% if total_profit >= 0 %}+{% endif %}{{ "{:,.0f}".format(total_profit) }} <span class="text-xs font-bold opacity-50">RWF</span>
+            </p>
+        </div>
+        <div class="h-8 w-px bg-gray-200"></div>
+        <button onclick="window.print()" class="group flex items-center space-x-3 bg-black text-white px-6 py-3 rounded-2xl hover:bg-gray-800 hover:scale-105 transition-all shadow-xl">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span class="text-[10px] font-black uppercase tracking-widest">Print Report</span>
+        </button>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Msell - {% block title %}{% endblock %}</title>
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'apple-blue': '#007AFF',
+                        'apple-bg': '#fbfbfd',
+                        'midnight-navy': '#0A1A2F',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #fbfbfd;
+            color: #1d1d1f;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .sidebar-dark {
+            background-color: #0A1A2F;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .active-nav {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #007AFF !important;
+            box-shadow: inset 4px 0 0 #007AFF;
+            border-radius: 0 12px 12px 0;
+            margin-left: -24px;
+            padding-left: 28px !important;
+        }
+
+        /* Glass Effect for Modal */
+        .glass-modal {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body class="h-screen overflow-hidden">
+    <div id="logout-modal" class="fixed inset-0 z-[200] hidden">
+        <div class="absolute inset-0 bg-black/20 backdrop-blur-sm"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div
+                class="glass-modal w-full max-w-sm rounded-3xl p-8 shadow-2xl scale-95 animate-in zoom-in duration-200">
+                <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                    <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                        </path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-black text-center text-gray-900 mb-2">Sign Out?</h3>
+                <p class="text-sm text-gray-500 text-center mb-8 font-medium">Any unsaved batch progress or input data
+                    will be lost. Are you sure you want to exit?</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="closeLogoutModal()"
+                        class="py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">
+                        Cancel
+                    </button>
+                    <a href="{{ url_for('logout') }}"
+                        class="py-3 px-4 bg-red-500 hover:bg-red-600 text-white text-center rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-red-500/20">
+                        Confirm
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex h-full">
+        <nav class="w-72 sidebar-dark flex flex-col p-6 z-40">
+            <div class="flex items-center gap-3 px-2 mb-12">
+                <div
+                    class="w-8 h-8 bg-apple-blue rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <span class="text-white font-black text-lg italic">M</span>
+                </div>
+                <span class="text-2xl font-black tracking-tighter text-white">Msell</span>
+            </div>
+
+            <div class="space-y-1 flex-grow">
+                <p class="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] px-3 mb-4">Inventory</p>
+
+                {% set nav_links = [
+                ('Dashboard', 'dashboard', 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1
+                1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'),
+                ('Products', 'products', 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'),
+                ('Add Product', 'add_product', 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'),
+                ('Categories', 'add_category', 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2
+                0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2
+                2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'),
+                ('Batches', 'batches', 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0
+                002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'),
+                ] %}
+
+                {% for name, endpoint, icon_path in nav_links %}
+                <a href="{{ url_for(endpoint) }}" class="nav-item flex items-center px-4 py-3 rounded-xl font-bold text-sm 
+                       {% if request.endpoint == endpoint %} active-nav {% endif %}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon_path }}">
+                        </path>
+                    </svg>
+                    <span>{{ name }}</span>
+                </a>
+                {% endfor %}
+            </div>
+
+            <div class="pt-6 border-t border-white/5">
+                <div class="bg-white/5 rounded-2xl p-4 mb-4 border border-white/5">
+                    <p class="text-[9px] font-black text-white/40 uppercase tracking-widest leading-none mb-2">Logged in
+                        as</p>
+                    <p class="text-sm font-bold text-white truncate">{{ session.get('name') | default('Administrator')
+                        }}</p>
+                </div>
+
+                <div class="space-y-1">
+                    <a href="{{ url_for('settings') }}"
+                        class="flex items-center px-4 py-2 text-sm font-medium text-white/50 hover:text-white rounded-xl transition-colors">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.942 3.33 1.905 1.838 3.344a1.724 1.724 0 00-.515 2.573c1.543 1.439 1.543 3.518 0 4.956a1.724 1.724 0 00.515 2.573c1.492 1.439-.297 4.286-1.838 3.344a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.942-3.33-1.905-1.838-3.344a1.724 1.724 0 00.515-2.573c-1.492-1.439-1.543-3.518 0-4.956a1.724 1.724 0 00-.515-2.573c-1.492-1.439.297-4.286 1.838-3.344a1.724 1.724 0 002.573-1.066zM12 17a5 5 0 100-10 5 5 0 000 10z">
+                            </path>
+                        </svg>
+                        Settings
+                    </a>
+                    <button onclick="openLogoutModal()"
+                        class="w-full flex items-center px-4 py-2 text-sm font-bold text-red-400 hover:bg-red-400/10 rounded-xl transition-colors outline-none">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                            </path>
+                        </svg>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="flex-grow overflow-y-auto relative">
+            <div class="p-8 lg:p-12 max-w-7xl mx-auto">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="fixed top-8 right-8 z-[100] space-y-3 w-80">
+                    {% for category, message in messages %}
+                    <div class="p-4 rounded-2xl shadow-2xl bg-white/90 backdrop-blur-md border animate-bounce-in
+                                    {% if category == 'error' %} border-red-100 text-red-600
+                                    {% elif category == 'success' %} border-green-100 text-green-600
+                                    {% else %} border-blue-100 text-blue-600 {% endif %}">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-2 h-2 rounded-full {% if category == 'error' %}bg-red-500{% elif category == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %}">
+                            </div>
+                            <p class="text-sm font-bold">{{ message }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Modal Logic
+        const modal = document.getElementById('logout-modal');
+        function openLogoutModal() {
+            modal.classList.remove('hidden');
+        }
+        function closeLogoutModal() {
+            modal.classList.add('hidden');
+        }
+
+        // Close modal if user clicks outside the card
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.classList.contains('bg-black/20')) {
+                closeLogoutModal();
+            }
+        });
+
+        // Flash Message Timeout Logic
+        setTimeout(() => {
+            const flashes = document.querySelectorAll('.animate-bounce-in');
+            flashes.forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(20px)';
+                el.style.transition = 'all 0.5s ease';
+                setTimeout(() => el.remove(), 500);
+            });
+        }, 5000);
+    </script>
+</body>
+
+</html>

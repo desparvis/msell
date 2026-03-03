@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Product: {{ product.name }}{% endblock %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    body { font-family: 'Inter', sans-serif; letter-spacing: -0.02em; background-color: #fbfbfd; }
+    .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.05); }
+    .apple-input { background: #f5f5f7; border: 1.5px solid transparent; transition: all 0.2s ease; }
+    .apple-input:focus { background: #ffffff; border-color: #007aff; box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1); }
+    .label-caps { font-size: 10px; font-weight: 800; color: #86868b; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+
+<div class="max-w-7xl mx-auto px-4 pb-20">
+    <header class="pt-10 pb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-4xl font-black text-black tracking-tight leading-tight">{{ product.name }}</h1>
+            <p class="text-gray-400 font-medium text-sm">Detailed inventory and <span class="text-black font-bold">Sales History</span></p>
+        </div>
+        
+        <a href="{{ url_for('products') }}" 
+           class="flex items-center px-6 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500 bg-white border border-gray-100 rounded-2xl shadow-sm hover:bg-black hover:text-white transition-all active:scale-95">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Back to Inventory
+        </a>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="lg:col-span-1 space-y-6">
+            <div class="glass-card p-6 rounded-[2.5rem] shadow-sm">
+                <h3 class="label-caps mb-6 ml-1">Product Gallery</h3>
+                {% if images %}
+                    <div class="mb-4 aspect-square rounded-[2rem] overflow-hidden cursor-pointer shadow-inner border border-gray-50" onclick="openCarousel('0')">
+                        <img id="main-product-image" 
+                             src="{{ images[0] }}" 
+                             alt="{{ product.name }}" 
+                             class="w-full h-full object-cover transition duration-700 hover:scale-110"
+                             onerror="this.onerror=null; this.src='https://placehold.co/400x400/eeeeee/333333?text=No+Image'">
+                    </div>
+
+                    <div id="image-gallery" class="grid grid-cols-4 gap-3">
+                        {% for image_url in images %}
+                            <img src="{{ image_url }}" 
+                                 class="w-full h-16 object-cover rounded-xl border border-gray-100 cursor-pointer transition hover:ring-2 hover:ring-blue-500"
+                                 onclick="openCarousel('{{ loop.index0 }}')">
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" id="all-image-urls" value="{{ images | join(',') }}">
+                {% else %}
+                    <div class="bg-gray-50 py-12 rounded-[2rem] border border-dashed border-gray-200 text-center">
+                        <p class="text-gray-400 text-xs font-bold uppercase">No images available</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border-2 border-blue-50 text-center">
+                <h3 class="label-caps mb-6">Action Center</h3>
+                {% set is_sold_out = (available_units <= 0) %}
+                
+                <button type="button" 
+                    data-product-id="{{ product.id }}"
+                    data-product-name="{{ product.name }}"
+                    data-available="{{ available_units }}"
+                    data-suggested-price="{{ product.final_price_rwf }}"
+                    class="sell-unit-btn w-full py-5 text-[11px] font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg 
+                    {% if is_sold_out %}bg-gray-100 text-gray-400 cursor-not-allowed{% else %}bg-black text-white hover:bg-blue-600 active:scale-95{% endif %}"
+                    {% if is_sold_out %}disabled{% endif %}>
+                    Sell Units
+                </button>
+
+                <div class="mt-6 flex justify-between items-center px-2">
+                    <span class="label-caps">Available Stock</span>
+                    <span class="text-2xl font-black {% if available_units <= 5 and not is_sold_out %}text-orange-500{% elif is_sold_out %}text-red-500{% else %}text-black{% endif %}">
+                        {{ "{:,}".format(available_units) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2 space-y-6">
+            <div class="glass-card p-10 rounded-[2.5rem] shadow-sm">
+                <div class="flex justify-between items-start mb-10">
+                    <h3 class="text-2xl font-black text-black tracking-tight">Product Summary</h3>
+                    <span class="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest">
+                        {{ product.category_info.name }}
+                    </span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div class="space-y-5">
+                        <div class="flex justify-between items-center py-2 border-b border-gray-50">
+                            <span class="label-caps">Total Initial Stock</span> 
+                            <span class="font-black text-black">{{ "{:,}".format(product.units) }} Units</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-50">
+                            <span class="label-caps">Total Units Sold</span> 
+                            <span class="font-black text-red-500">{{ "{:,}".format(total_sold) }} Sold</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-8 rounded-[2rem] border border-gray-100 flex flex-col justify-center">
+                        <p class="label-caps mb-2">Recommended Sale Price</p>
+                        <p class="text-4xl font-black text-black mb-2">{{ "{:,.0f}".format(product.final_price_rwf) }} <span class="text-sm font-bold text-gray-400">RWF</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card p-10 rounded-[2.5rem] shadow-sm">
+                <h3 class="text-2xl font-black text-black tracking-tight mb-8">Sales Transactions</h3>
+                {% if sales_records %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="label-caps border-b border-gray-50">
+                                    <th class="pb-4 text-left">Date</th>
+                                    <th class="pb-4 text-left">Qty</th>
+                                    <th class="pb-4 text-left">Price/Unit</th>
+                                    <th class="pb-4 text-right">Total Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                {% for sale in sales_records %}
+                                    <tr>
+                                        <td class="py-5 text-sm font-bold text-gray-500">{{ sale.sold_at.strftime('%d %b, %Y') }}</td>
+                                        <td class="py-5 text-sm font-black text-black">{{ "{:,}".format(sale.units_sold) }}</td>
+                                        <td class="py-5 text-sm font-bold text-gray-600">{{ "{:,.0f}".format(sale.unit_sale_price_rwf) }} RWF</td>
+                                        <td class="py-5 text-right font-black text-green-600">{{ "{:,.0f}".format(sale.total_sale_price_rwf) }} RWF</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-center py-12 text-gray-400 font-bold text-xs uppercase tracking-widest">No sales recorded yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="sell-modal" class="fixed inset-0 bg-white/60 backdrop-blur-xl hidden items-center justify-center z-50 p-4" onclick="closeModal(event)">
+    <div class="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-md border border-gray-100" onclick="event.stopPropagation()">
+        <header class="mb-8">
+            <h3 class="text-3xl font-black text-black tracking-tight">Record Sale</h3>
+            <p id="sell-modal-product-name" class="text-blue-600 font-bold mt-1"></p>
+            <p id="sell-modal-text" class="text-gray-400 text-xs mt-1 font-medium"></p>
+        </header>
+
+        <form id="sell-form" method="POST">
+            <div class="space-y-6">
+                <div>
+                    <label class="block label-caps mb-2 ml-4">Units to Sell</label>
+                    <input type="number" id="units_to_sell" name="units_to_sell" min="1" required
+                           class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-lg">
+                </div>
+                <div>
+                    <label class="block label-caps mb-2 ml-4">Total Sale Price (RWF)</label>
+                    <input type="text" id="price_display" required class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-lg" placeholder="0">
+                    <input type="hidden" id="sale_price_rwf" name="sale_price_rwf">
+                    <p class="text-[10px] text-gray-400 mt-2 italic ml-4">*Enter actual amount paid by customer.</p>
+                </div>
+            </div>
+
+            <div class="mt-10 flex flex-col space-y-3">
+                <button type="submit" class="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:scale-[1.02] transition">Confirm & Save Sale</button>
+                <button type="button" onclick="closeSellModal()" class="w-full py-4 text-gray-400 font-bold text-sm">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="image-carousel-modal" class="fixed inset-0 bg-black/95 backdrop-blur-xl hidden items-center justify-center z-[100] p-4" onclick="closeCarousel()">
+    <button class="absolute top-8 right-8 text-white/70 hover:text-white transition-all z-[110]">
+        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </button>
+    
+    <div class="relative flex items-center justify-center w-full h-full">
+        <button onclick="event.stopPropagation(); navigateCarousel(-1)" class="absolute left-4 p-4 text-white/50 hover:text-white transition-all text-5xl font-light z-[110]">‹</button>
+        <img id="carousel-image" src="" class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl transition-all duration-300" onclick="event.stopPropagation()">
+        <button onclick="event.stopPropagation(); navigateCarousel(1)" class="absolute right-4 p-4 text-white/50 hover:text-white transition-all text-5xl font-light z-[110]">›</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sellModal = document.getElementById('sell-modal');
+    const priceDisplay = document.getElementById('price_display');
+    const priceHidden = document.getElementById('sale_price_rwf');
+    const hiddenUrlsInput = document.getElementById('all-image-urls');
+    
+    let imageUrls = [];
+    let currentImageIndex = 0;
+
+    if (hiddenUrlsInput) {
+        imageUrls = hiddenUrlsInput.value.split(',').filter(url => url.trim() !== '');
+    }
+
+    // --- Sales Logic ---
+    priceDisplay.addEventListener('input', function(e) {
+        let val = e.target.value.replace(/[^0-9]/g, '');
+        if (val === '') { priceHidden.value = ''; e.target.value = ''; return; }
+        priceHidden.value = val;
+        e.target.value = parseInt(val).toLocaleString();
+    });
+
+    window.closeSellModal = () => { sellModal.classList.replace('flex', 'hidden'); };
+
+    document.querySelectorAll('.sell-unit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const data = this.dataset;
+            document.getElementById('sell-form').action = "{{ url_for('sell_unit', product_id=0) }}".replace('0', data.productId);
+            document.getElementById('sell-modal-product-name').textContent = data.productName;
+            document.getElementById('sell-modal-text').textContent = `Stock: ${data.available} units remaining.`;
+            document.getElementById('units_to_sell').max = data.available;
+            document.getElementById('units_to_sell').value = 1;
+            
+            const suggested = Math.floor(data.suggestedPrice);
+            priceHidden.value = suggested;
+            priceDisplay.value = suggested.toLocaleString();
+
+            sellModal.classList.replace('hidden', 'flex');
+        });
+    });
+
+    window.closeModal = (e) => { if (e.target === sellModal) closeSellModal(); };
+
+    // --- Carousel Logic ---
+    window.openCarousel = (index) => {
+        currentImageIndex = parseInt(index);
+        updateCarousel();
+        const c = document.getElementById('image-carousel-modal');
+        c.classList.replace('hidden', 'flex');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeCarousel = () => {
+        const c = document.getElementById('image-carousel-modal');
+        c.classList.replace('flex', 'hidden');
+        document.body.style.overflow = '';
+    };
+
+    window.navigateCarousel = (dir) => {
+        currentImageIndex = (currentImageIndex + dir + imageUrls.length) % imageUrls.length;
+        updateCarousel();
+    };
+
+    function updateCarousel() {
+        document.getElementById('carousel-image').src = imageUrls[currentImageIndex];
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") { closeCarousel(); closeSellModal(); }
+    });
+});
+</script>
+{% endblock %}

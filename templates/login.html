@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Msell - Auth Portal</title>
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'apple-blue': '#007AFF',
+                        'apple-bg': '#fbfbfd',
+                        'midnight-navy': '#0A1A2F',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #fbfbfd;
+            color: #1d1d1f;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .auth-input {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid #e5e5ea;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: #007AFF;
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+            background: white;
+        }
+
+        @keyframes bounce-in {
+            0% {
+                transform: translateY(-20px) scale(0.95);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-bounce-in {
+            animation: bounce-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-6">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] space-y-3 w-full max-w-sm px-4">
+        {% for category, message in messages %}
+        <div class="p-4 rounded-2xl shadow-2xl bg-white/90 backdrop-blur-md border animate-bounce-in
+                        {% if category == 'error' %} border-red-100 text-red-600
+                        {% elif category == 'success' %} border-green-100 text-green-600
+                        {% else %} border-blue-100 text-blue-600 {% endif %}">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-2 h-2 rounded-full {% if category == 'error' %}bg-red-500{% elif category == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %}">
+                </div>
+                <p class="text-sm font-bold">{{ message }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="w-full max-w-[400px] space-y-8">
+        <div class="text-center">
+            <div
+                class="inline-flex items-center justify-center w-16 h-16 bg-midnight-navy rounded-2xl shadow-2xl shadow-midnight-navy/20 mb-6">
+                <span class="text-white font-black text-3xl italic">M</span>
+            </div>
+            <h1 class="text-3xl font-black text-gray-900 tracking-tighter">Welcome back.</h1>
+            <p id="app-subtitle" class="text-gray-400 font-medium text-sm mt-2">Access your stock management portal</p>
+        </div>
+
+        <div class="bg-white p-8 rounded-[32px] border border-gray-200/60 shadow-sm relative">
+
+            <div id="auth-views">
+                <div id="login-view" class="view">
+                    <form id="login-form" method="POST" action="{{ url_for('login') }}" class="space-y-4">
+                        <div>
+                            <label
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-2 block">Identity
+                                (Phone)</label>
+                            <input type="tel" name="login_phone" required
+                                class="auth-input w-full bg-gray-50/50 p-4 rounded-2xl text-sm font-bold placeholder:text-gray-300"
+                                placeholder="07...">
+                        </div>
+                        <div class="relative">
+                            <label
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-2 block">Secure
+                                Key</label>
+                            <div class="relative">
+                                <input type="password" id="login-pass" name="login_password" required
+                                    class="auth-input w-full bg-gray-50/50 p-4 pr-12 rounded-2xl text-sm font-bold"
+                                    placeholder="••••••••">
+                                <button type="button" onclick="togglePass('login-pass')"
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-midnight-navy transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit"
+                            class="w-full bg-midnight-navy text-white font-black py-4 rounded-2xl text-xs uppercase tracking-[0.2em] shadow-xl shadow-midnight-navy/10 hover:bg-black transition-all pt-5">
+                            Sign In
+                        </button>
+                    </form>
+
+                    <div class="mt-8 pt-6 border-t border-gray-100 text-center">
+                        <p class="text-xs font-bold text-gray-400">
+                            New operator?
+                            <a href="#" id="show-signup"
+                                class="text-apple-blue ml-1 hover:underline underline-offset-4 font-black">Register</a>
+                        </p>
+                    </div>
+                </div>
+
+                <div id="signup-view" class="view hidden">
+                    <form id="signup-form" method="POST" action="{{ url_for('signup') }}" class="space-y-4">
+                        <div>
+                            <label
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-2 block">Full
+                                Name</label>
+                            <input type="text" name="signup_name" required
+                                class="auth-input w-full bg-gray-50/50 p-4 rounded-2xl text-sm font-bold"
+                                placeholder="Admin User">
+                        </div>
+                        <div>
+                            <label
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-2 block">Phone
+                                Number</label>
+                            <input type="tel" name="signup_phone" required
+                                class="auth-input w-full bg-gray-50/50 p-4 rounded-2xl text-sm font-bold"
+                                placeholder="+250 ...">
+                        </div>
+                        <div class="relative">
+                            <label
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-2 block">Set
+                                Password</label>
+                            <div class="relative">
+                                <input type="password" id="signup-pass" name="signup_password" required
+                                    class="auth-input w-full bg-gray-50/50 p-4 pr-12 rounded-2xl text-sm font-bold"
+                                    placeholder="••••••••">
+                                <button type="button" onclick="togglePass('signup-pass')"
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit"
+                            class="w-full bg-apple-blue text-white font-black py-4 rounded-2xl text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-blue-600 transition-all pt-5">
+                            Create Account
+                        </button>
+                    </form>
+
+                    <div class="mt-8 pt-6 border-t border-gray-100 text-center">
+                        <p class="text-xs font-bold text-gray-400">
+                            Already registered?
+                            <a href="#" id="show-login"
+                                class="text-midnight-navy ml-1 hover:underline underline-offset-4 font-black">Log in</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-center items-center py-4">
+            <span class="flex items-center gap-1.5 text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">
+                <span class="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span> SYSTEM OPERATIONAL
+            </span>
+        </div>
+    </div>
+
+    <script>
+        // Password Visibility Toggle
+        function togglePass(id) {
+            const el = document.getElementById(id);
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginView = document.getElementById('login-view');
+            const signupView = document.getElementById('signup-view');
+            const showSignupBtn = document.getElementById('show-signup');
+            const showLoginBtn = document.getElementById('show-login');
+            const subtitleEl = document.getElementById('app-subtitle');
+
+            const switchView = (viewName) => {
+                if (viewName === 'signup') {
+                    loginView.classList.add('hidden');
+                    signupView.classList.remove('hidden');
+                    subtitleEl.textContent = 'Create your Msell Operator Account';
+                } else {
+                    signupView.classList.add('hidden');
+                    loginView.classList.remove('hidden');
+                    subtitleEl.textContent = 'Access your stock management portal';
+                }
+            };
+
+            showSignupBtn.addEventListener('click', (e) => { e.preventDefault(); switchView('signup'); });
+            showLoginBtn.addEventListener('click', (e) => { e.preventDefault(); switchView('login'); });
+
+            setTimeout(() => {
+                const flashes = document.querySelectorAll('.animate-bounce-in');
+                flashes.forEach(el => {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(-20px)';
+                    el.style.transition = 'all 0.5s ease';
+                    setTimeout(() => el.remove(), 500);
+                });
+            }, 4000);
+        });
+    </script>
+</body>
+
+</html>

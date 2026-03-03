@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.02em; background-color: #fbfbfb; }
+    .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.05); }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+    
+    /* Small, sleek filter buttons */
+    .btn-filter { padding: 4px 12px; border-radius: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; transition: all 0.2s ease; border: 1px solid transparent; }
+    .active-filter { background: #000; color: #fff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+    .inactive-filter { color: #9ca3af; }
+    .inactive-filter:hover { background: #f3f4f6; color: #111827; }
+</style>
+
+<div class="max-w-7xl mx-auto px-4">
+    <header class="pb-10 pt-4">
+        <p class="text-[11px] font-bold text-blue-600 uppercase tracking-[0.3em] mb-3">System Overview</p>
+        <h1 class="text-6xl font-black text-black tracking-tight mb-2">Hello, {{ session.get('name') | default('Seller') }}.</h1>
+        <p class="text-gray-400 text-xl font-medium">Your business is healthy. Here's the data.</p>
+    </header>
+    
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        {% set stats = [
+            ('Revenue', sales_today_rwf, 'text-blue-600', 'M24 12c0-6.627-5.373-12-12-12s-12 5.373-12 12 5.373 12 12 12 12-5.373 12-12zm-12 5v-3h2v-2h-2v-2h2v-2h-2v-3l5 6-5 6z'),
+            ('Net Profit', profit_today_rwf, 'text-green-500', 'M2.25 18L9 11.25l4.306 4.307a.75.75 0 001.06 0L21.75 8.25m-1.5 0h1.5v1.5m-1.5-1.5L21.75 8.25'),
+            ('Inventory', total_inventory_value, 'text-gray-900', 'M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9'),
+            ('Restock', low_stock_count, 'text-red-500', 'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z')
+        ] %}
+        
+        {% for title, val, color, path in stats %}
+        <div class="glass-card p-8 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
+            <div class="flex justify-between items-start mb-6">
+                <div class="p-3 rounded-2xl bg-gray-50">
+                    <svg class="w-6 h-6 {{ color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="{{ path }}"></path></svg>
+                </div>
+            </div>
+            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">{{ title }} {% if title in ['Revenue', 'Net Profit'] %}({{ filter_type }}){% endif %}</p>
+            <h2 class="text-3xl font-black {% if title == 'Net Profit' and val < 0 %}text-red-500{% else %}text-black{% endif %} tabular-nums">
+                {% if title == 'Net Profit' and val > 0 %}+{% endif %}{{ "{:,.0f}".format(val) }} 
+                <span class="text-sm font-medium text-gray-300">{{ 'RWF' if title != 'Restock' else 'Items' }}</span>
+            </h2>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20">
+        <div class="lg:col-span-2 glass-card p-10 rounded-[3rem]">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
+                <div>
+                    <h3 class="text-2xl font-bold text-black mb-1">Performance</h3>
+                    <div class="flex space-x-4">
+                        <div class="flex items-center text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                            <span class="w-2 h-2 bg-blue-600 rounded-full mr-2"></span> Revenue
+                        </div>
+                        <div class="flex items-center text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span> Profit
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                    <a href="{{ url_for('dashboard', filter='day') }}" class="btn-filter {% if filter_type == 'day' %}active-filter{% else %}inactive-filter{% endif %}">Day</a>
+                    <a href="{{ url_for('dashboard', filter='month') }}" class="btn-filter {% if filter_type == 'month' %}active-filter{% else %}inactive-filter{% endif %}">Month</a>
+                    <a href="{{ url_for('dashboard', filter='year') }}" class="btn-filter {% if filter_type == 'year' %}active-filter{% else %}inactive-filter{% endif %}">Year</a>
+                </div>
+            </div>
+
+            <div class="h-80">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="lg:col-span-1 glass-card p-10 rounded-[3rem] flex flex-col">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-bold text-black">Recent</h3>
+                <a href="{{ url_for('sales_history') }}" class="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:scale-110 transition shadow-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                </a>
+            </div>
+            
+            <div class="space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                {% for activity in recent_activity %}
+                <div class="group flex justify-between items-center p-5 rounded-3xl hover:bg-white transition-all">
+                    <div>
+                        <p class="text-sm font-bold text-black">{{ activity.product_name }}</p>
+                        <p class="text-[10px] font-bold text-gray-300 uppercase tracking-tighter">{{ activity.time_ago }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold {% if activity.profit > 0 %}text-green-500{% elif activity.profit < 0 %}text-red-500{% else %}text-gray-400{% endif %}">
+                            {% if activity.profit > 0 %}+{% endif %}{{ "{:,.0f}".format(activity.profit) }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const labels = JSON.parse('{{ chart_labels | tojson | safe }}');
+        const revData = JSON.parse('{{ revenue_data | tojson | safe }}');
+        const profData = JSON.parse('{{ profit_data | tojson | safe }}');
+
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { 
+                        label: 'Revenue', 
+                        data: revData, 
+                        backgroundColor: '#2563eb', 
+                        borderRadius: 12, 
+                        barThickness: 'flex',
+                        maxBarThickness: 16
+                    },
+                    { 
+                        label: 'Profit', 
+                        data: profData, 
+                        backgroundColor: '#22c55e', 
+                        borderRadius: 12, 
+                        barThickness: 'flex',
+                        maxBarThickness: 16
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { 
+                        border: { display: false }, 
+                        grid: { color: '#f3f4f6' }, 
+                        ticks: { font: { family: 'Inter', size: 10, weight: 600 } } 
+                    },
+                    x: { 
+                        border: { display: false }, 
+                        grid: { display: false }, 
+                        ticks: { font: { family: 'Inter', size: 10, weight: 600 } } 
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

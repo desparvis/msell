@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Msell - Verify Identity</title>
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'apple-blue': '#007AFF',
+                        'apple-bg': '#fbfbfd',
+                        'midnight-navy': '#0A1A2F',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #fbfbfd; color: #1d1d1f; -webkit-font-smoothing: antialiased; }
+        .auth-input { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #e5e5ea; }
+        .auth-input:focus { outline: none; border-color: #007AFF; box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1); background: white; }
+        
+        @keyframes bounce-in {
+            0% { transform: translateY(-20px) scale(0.95); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .animate-bounce-in { animation: bounce-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-6">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] space-y-3 w-full max-w-sm px-4">
+        {% for category, message in messages %}
+        <div class="p-4 rounded-2xl shadow-2xl bg-white/90 backdrop-blur-md border animate-bounce-in
+                    {% if category == 'error' %} border-red-100 text-red-600
+                    {% elif category == 'success' %} border-green-100 text-green-600
+                    {% else %} border-blue-100 text-blue-600 {% endif %}">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full {% if category == 'error' %}bg-red-500{% elif category == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %}"></div>
+                <p class="text-sm font-bold">{{ message }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="w-full max-w-[400px] space-y-8">
+        <div class="text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-midnight-navy rounded-2xl shadow-2xl shadow-midnight-navy/20 mb-6">
+                <span class="text-white font-black text-3xl italic">M</span>
+            </div>
+            <h1 class="text-3xl font-black text-gray-900 tracking-tighter">Verify your phone</h1>
+            <p class="text-gray-400 font-medium text-sm mt-2">We sent a 6-digit code to <span class="text-midnight-navy font-bold">{{ phone }}</span></p>
+        </div>
+
+        <div class="bg-white p-8 rounded-[32px] border border-gray-200/60 shadow-sm relative">
+            <form id="verify-form" method="POST" action="{{ url_for('verify_page') }}" class="space-y-6">
+                <div>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-2 block text-center">Enter Security Code</label>
+                    <input type="text" name="otp_code" maxlength="6" required autofocus
+                        class="auth-input w-full bg-gray-50/50 p-4 rounded-2xl text-3xl font-black text-center tracking-[0.4em] placeholder:text-gray-200"
+                        placeholder="000000">
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-midnight-navy text-white font-black py-4 rounded-2xl text-xs uppercase tracking-[0.2em] shadow-xl shadow-midnight-navy/10 hover:bg-black transition-all">
+                    Verify & Finish
+                </button>
+            </form>
+
+            <div class="mt-8 pt-6 border-t border-gray-100 text-center">
+                <form action="{{ url_for('resend_verification') }}" method="POST" id="resend-form">
+                    <p class="text-xs font-bold text-gray-400">
+                        Didn't receive it? 
+                        <button type="submit" id="resend-btn" 
+                                class="text-apple-blue ml-1 hover:underline underline-offset-4 font-black disabled:text-gray-300 disabled:no-underline">
+                            Resend Code
+                        </button>
+                    </p>
+                    <p id="timer" class="text-[10px] font-bold text-gray-300 uppercase tracking-tight mt-2 hidden">
+                        You can resend in <span id="seconds">30</span>s
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <a href="{{ url_for('login') }}" class="text-xs font-bold text-gray-400 hover:text-midnight-navy transition-colors">
+                ← Back to Identity Portal
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Handle Resend Timer Logic
+        const resendBtn = document.getElementById('resend-btn');
+        const timerDisplay = document.getElementById('timer');
+        const secondsSpan = document.getElementById('seconds');
+        
+        resendBtn.addEventListener('click', () => {
+            // The form will submit, but we can prevent double clicks
+            setTimeout(() => {
+                resendBtn.disabled = true;
+                timerDisplay.classList.remove('hidden');
+                let timeLeft = 30;
+                
+                const countdown = setInterval(() => {
+                    timeLeft--;
+                    secondsSpan.textContent = timeLeft;
+                    if (timeLeft <= 0) {
+                        clearInterval(countdown);
+                        resendBtn.disabled = false;
+                        timerDisplay.classList.add('hidden');
+                    }
+                }, 1000);
+            }, 10);
+        });
+
+        // Auto-remove flash messages
+        setTimeout(() => {
+            const flashes = document.querySelectorAll('.animate-bounce-in');
+            flashes.forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-20px)';
+                el.style.transition = 'all 0.5s ease';
+                setTimeout(() => el.remove(), 500);
+            });
+        }, 4000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Product{% endblock %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+    body { font-family: 'Inter', sans-serif; letter-spacing: -0.02em; background-color: #fbfbfd; }
+    .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.05); }
+    .apple-input { 
+        background: #f5f5f7; 
+        border: 1.5px solid transparent; 
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .apple-input:focus { 
+        background: #ffffff; 
+        border-color: #007aff; 
+        box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1); 
+    }
+    .label-caps { font-size: 10px; font-weight: 800; color: #86868b; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+
+<div class="max-w-4xl mx-auto px-4 pb-20">
+    <header class="pt-10 pb-12">
+        <a href="{{ url_for('products') }}" class="text-blue-600 font-bold text-sm mb-4 inline-block hover:underline">← Back to Inventory</a>
+        <h1 class="text-5xl font-black text-black tracking-tight">Add Product</h1>
+        <p class="text-gray-400 font-medium mt-2">Register a new item to your inventory.</p>
+    </header>
+
+    <div class="glass-card p-10 rounded-[2.5rem] shadow-sm border border-gray-100">
+        {% if categories %}
+            <form method="POST" action="{{ url_for('add_product') }}" enctype="multipart/form-data" id="productForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+
+                    <div class="space-y-2">
+                        <label for="name" class="label-caps ml-1">Product Name</label>
+                        <input type="text" id="name" name="name" required
+                            class="apple-input w-full p-4 rounded-2xl outline-none font-semibold text-gray-800"
+                            placeholder="e.g., iPhone 15 Pro Max">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="category_id" class="label-caps ml-1">Category</label>
+                        <select id="category_id" name="category_id" required
+                            class="apple-input w-full p-4 rounded-2xl outline-none font-semibold text-gray-800 appearance-none">
+                            {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="units" class="label-caps ml-1">Initial Stock (Units)</label>
+                        <input type="number" id="units" name="units" min="1" step="1" required
+                            class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-gray-800"
+                            placeholder="10">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="product_images" class="label-caps ml-1">Product Images</label>
+                        <input type="file" id="product_images" name="product_images" multiple accept="image/*"
+                            class="apple-input w-full p-3 rounded-2xl outline-none text-sm text-gray-500
+                                   file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 
+                                   file:text-[10px] file:font-black file:uppercase file:bg-black file:text-white">
+                    </div>
+
+                    <div class="md:col-span-2 border-t border-gray-100 pt-8 mt-2">
+                        <h3 class="text-xl font-black text-black tracking-tight mb-4">Source Pricing</h3>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="price_foreign_display" class="label-caps ml-1">Unit Price (Foreign)</label>
+                        <div class="relative">
+                            <input type="text" id="price_foreign_display" required
+                                class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-lg text-gray-800"
+                                placeholder="0.00">
+                            <input type="hidden" id="price_foreign" name="price_foreign">
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="label-caps ml-1">Source Currency</label>
+                        
+                        <div id="currency-main-group">
+                            <select id="currency_main" name="currency" required 
+                                class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-gray-800">
+                                {% for currency in main_currencies %}
+                                    <option value="{{ currency }}" {% if currency == 'USD' %}selected{% endif %}>{{ currency }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" id="show-other-btn" class="text-[11px] text-blue-600 font-bold uppercase tracking-wider mt-2 ml-1 hover:underline">Show all currencies</button>
+                        </div>
+
+                        <div id="currency-other-group" class="hidden">
+                            <select id="currency_other" name="currency" disabled required 
+                                class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-gray-800">
+                                {% for currency in other_currencies %}
+                                    <option value="{{ currency }}">{{ currency }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" id="hide-other-btn" class="text-[11px] text-red-500 font-bold uppercase tracking-wider mt-2 ml-1 hover:underline">Back to main</button>
+                        </div>
+                    </div>
+
+                </div> 
+                
+                <div class="mt-12">
+                    <button type="submit" 
+                        class="w-full bg-black text-white font-black uppercase tracking-[0.1em] text-xs py-6 rounded-[2rem] shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all">
+                        Add Product to Inventory
+                    </button>
+                </div>
+            </form>
+        {% else %}
+            <div class="text-center py-10">
+                <h3 class="text-2xl font-black text-black mb-2">Categories Required</h3>
+                <p class="text-gray-400 font-medium mb-8">You need at least one category before adding products.</p>
+                <a href="{{ url_for('add_category') }}" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-700 transition">
+                    Create Category Now
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('productForm');
+    const dInput = document.getElementById('price_foreign_display');
+    const hInput = document.getElementById('price_foreign');
+    const unitsInput = document.getElementById('units');
+
+    // 1. Currency Formatting Logic
+    dInput.addEventListener('input', function(e) {
+        let rawValue = e.target.value.replace(/[^0-9.]/g, '');
+        const parts = rawValue.split('.');
+        if (parts.length > 2) rawValue = parts[0] + '.' + parts.slice(1).join('');
+
+        if (rawValue) {
+            let formatted = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            if (parts.length > 1) {
+                formatted += "." + parts[1].substring(0, 2);
+            }
+            e.target.value = formatted;
+            hInput.value = rawValue;
+        } else {
+            hInput.value = "";
+        }
+    });
+
+    // 2. Currency Toggle Logic
+    const mainGroup = document.getElementById('currency-main-group');
+    const otherGroup = document.getElementById('currency-other-group');
+    const mainSelect = document.getElementById('currency_main');
+    const otherSelect = document.getElementById('currency_other');
+
+    document.getElementById('show-other-btn').onclick = () => {
+        mainGroup.classList.add('hidden');
+        otherGroup.classList.remove('hidden');
+        mainSelect.disabled = true;
+        otherSelect.disabled = false;
+    };
+
+    document.getElementById('hide-other-btn').onclick = () => {
+        otherGroup.classList.add('hidden');
+        mainGroup.classList.remove('hidden');
+        otherSelect.disabled = true;
+        mainSelect.disabled = false;
+    };
+
+    // 3. Validation Logic
+    unitsInput.addEventListener('change', function() {
+        if (this.value < 1) this.value = 1;
+    });
+
+    form.onsubmit = function() {
+        if (!hInput.value || parseFloat(hInput.value) <= 0) {
+            alert("Please enter a valid price.");
+            dInput.focus();
+            return false;
+        }
+        return true;
+    };
+</script>
+{% endblock %}

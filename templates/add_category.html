@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Categories{% endblock %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    body { font-family: 'Inter', sans-serif; letter-spacing: -0.02em; background-color: #fbfbfd; }
+    .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.05); }
+    .apple-input { 
+        background: #f5f5f7; 
+        border: 1.5px solid transparent; 
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .apple-input:focus { 
+        background: #ffffff; 
+        border-color: #007aff; 
+        box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1); 
+    }
+    .label-caps { font-size: 10px; font-weight: 800; color: #86868b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .category-row { transition: transform 0.2s ease, background-color 0.2s ease; }
+    .category-row:hover { background-color: #ffffff; transform: scale(1.01); }
+    
+    .modal-animate { animation: modalFadeIn 0.2s ease-out; }
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+</style>
+
+<div class="max-w-6xl mx-auto px-4 pb-20">
+    <header class="pt-10 pb-8">
+        <h1 class="text-4xl font-black text-black tracking-tight leading-tight">Manage Categories</h1>
+        <p class="text-gray-400 font-medium text-sm">Organize your inventory with <span class="text-black font-bold">Custom Groups</span></p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        
+        <div class="lg:col-span-1 sticky top-8">
+            <h2 class="label-caps mb-4 ml-1">Add New Category</h2>
+            <div class="glass-card p-6 rounded-[2rem] shadow-sm border border-gray-100">
+                <form method="POST" action="{{ url_for('add_category') }}" class="space-y-5">
+                    <div class="space-y-1">
+                        <label for="category_name" class="label-caps ml-1">Category Name</label>
+                        <input type="text" id="category_name" name="category_name" required
+                            class="apple-input w-full p-3 rounded-xl outline-none font-semibold text-gray-800"
+                            placeholder="e.g., Electronics">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label for="description" class="label-caps ml-1">Description</label>
+                        <textarea id="description" name="description" rows="3"
+                            class="apple-input w-full p-3 rounded-xl outline-none font-semibold text-gray-800"
+                            placeholder="Optional details..."></textarea>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-black text-white font-black uppercase tracking-widest text-[11px] py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all">
+                        Create Category
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2">
+            <h2 class="label-caps mb-4 ml-1">Existing Categories ({{ categories_data | length }})</h2>
+            <div class="glass-card p-2 rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+                {% if categories_data %}
+                    <div class="divide-y divide-gray-50">
+                        {% for data in categories_data %}
+                            {% set category = data.category %}
+                            {% set count = data.product_count %}
+                            
+                            <div class="category-row p-5 flex flex-col md:flex-row justify-between items-start md:items-center">
+                                <div class="flex-1 min-w-0 mb-3 md:mb-0">
+                                    <p class="text-lg font-black text-black truncate">{{ category.name }}</p>
+                                    <p class="text-xs text-gray-400 font-medium truncate italic">{{ category.description or 'No description provided.' }}</p>
+                                </div>
+                                
+                                <div class="flex items-center gap-6 w-full md:w-auto">
+                                    <div class="bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 text-center min-w-[80px]">
+                                        <p class="text-[9px] font-black text-gray-400 uppercase leading-none mb-1">Items</p>
+                                        <p class="text-sm font-black {% if count > 0 %}text-blue-600{% else %}text-gray-300{% endif %}">{{ count }}</p>
+                                    </div>
+                                    
+                                    <div class="flex gap-2">
+                                        <button type="button" 
+                                                class="edit-category-btn h-10 w-10 flex items-center justify-center rounded-xl bg-gray-100 text-gray-800 hover:bg-black hover:text-white transition-all"
+                                                data-id="{{ category.id }}"
+                                                data-name="{{ category.name }}"
+                                                data-description="{{ category.description or '' }}">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                        </button>
+                                        
+                                        <button type="button" 
+                                                class="delete-category-btn h-10 w-10 flex items-center justify-center rounded-xl transition-all
+                                                {% if count > 0 %} bg-gray-50 text-gray-200 cursor-not-allowed {% else %} bg-red-50 text-red-500 hover:bg-red-500 hover:text-white {% endif %}"
+                                                data-id="{{ category.id }}"
+                                                data-name="{{ category.name }}"
+                                                {% if count > 0 %}disabled{% endif %}>
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-20 px-6">
+                        <p class="text-gray-400 font-bold text-sm uppercase tracking-widest">No Categories Found</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="edit-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4" onclick="handleOverlayClick(event, 'edit-modal')">
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md modal-animate" onclick="event.stopPropagation()">
+        <h3 class="text-2xl font-black text-black mb-6 tracking-tight">Edit Category</h3>
+        
+        <form id="edit-form" method="POST" action="" class="space-y-5">
+            <div class="space-y-1">
+                <label for="edit_category_name" class="label-caps ml-1">Category Name</label>
+                <input type="text" id="edit_category_name" name="category_name" required
+                    class="apple-input w-full p-3 rounded-xl outline-none font-semibold text-gray-800">
+            </div>
+
+            <div class="space-y-1">
+                <label for="edit_description" class="label-caps ml-1">Description</label>
+                <textarea id="edit_description" name="description" rows="3"
+                    class="apple-input w-full p-3 rounded-xl outline-none font-semibold text-gray-800"></textarea>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="closeModal('edit-modal')"
+                    class="flex-1 px-4 py-4 text-[11px] font-black uppercase tracking-widest text-gray-400 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="flex-1 px-4 py-4 text-[11px] font-black uppercase tracking-widest text-white bg-black rounded-xl shadow-lg active:scale-[0.98] transition-all">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="delete-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4" onclick="handleOverlayClick(event, 'delete-modal')">
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md modal-animate text-center" onclick="event.stopPropagation()">
+        <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.332 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </div>
+        
+        <h3 class="text-2xl font-black text-black mb-2 tracking-tight">Confirm Delete</h3>
+        <p class="text-sm text-gray-500 font-medium mb-8">
+            Are you sure you want to delete <span id="category-name-to-delete" class="text-red-600 font-bold"></span>?
+        </p>
+        
+        <form id="delete-form" method="POST" action="">
+            <div class="flex gap-3">
+                <button type="button" onclick="closeModal('delete-modal')"
+                    class="flex-1 px-4 py-4 text-[11px] font-black uppercase tracking-widest text-gray-400 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="flex-1 px-4 py-4 text-[11px] font-black uppercase tracking-widest text-white bg-red-500 rounded-xl shadow-lg hover:bg-red-600 active:scale-[0.98] transition-all">
+                    Delete
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // --- Fixed Modal Logic ---
+        window.closeModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        window.handleOverlayClick = function(event, modalId) {
+            if (event.target.id === modalId) {
+                closeModal(modalId);
+            }
+        };
+
+        // Edit Button Handler
+        document.querySelectorAll('.edit-category-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const categoryId = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                const description = this.getAttribute('data-description');
+                
+                document.getElementById('edit_category_name').value = name;
+                document.getElementById('edit_description').value = description;
+                document.getElementById('edit-form').action = `/update-category/${categoryId}`;
+
+                const modal = document.getElementById('edit-modal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+        });
+
+        // Delete Button Handler
+        document.querySelectorAll('.delete-category-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                if (this.disabled) return;
+                const categoryId = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                
+                document.getElementById('category-name-to-delete').textContent = name;
+                document.getElementById('delete-form').action = `/delete-category/${categoryId}`;
+
+                const modal = document.getElementById('delete-modal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+        });
+    });
+</script>
+{% endblock %}

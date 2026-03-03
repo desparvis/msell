@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Products Inventory{% endblock %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.02em; background-color: #fbfbfd; }
+    .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.05); }
+    .apple-input { background: #f5f5f7; border: 1px solid transparent; transition: all 0.2s ease; }
+    .apple-input:focus { background: #ffffff; border-color: #007aff; box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1); }
+</style>
+
+<div class="max-w-7xl mx-auto px-4 pb-20">
+    <header class="pt-8 pb-10">
+        <h1 class="text-5xl font-black text-black tracking-tight">Inventory ({{ products_data | length }})</h1>
+        <p class="text-gray-400 font-medium mt-2">Manage stock and record sales. Profit is calculated based on actual sale price.</p>
+    </header>
+
+    <div class="glass-card p-6 rounded-[2rem] mb-8 border border-gray-100 shadow-sm">
+        <form method="GET" action="{{ url_for('products') }}" id="filterForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div>
+                <label for="sort" class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Sort By</label>
+                <select id="sort" name="sort" onchange="this.form.submit()" class="w-full p-3 bg-gray-50 border-none text-gray-800 text-sm font-bold rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Date Added (Newest)</option>
+                    <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Date Added (Oldest)</option>
+                    <option value="stock_high" {% if current_sort == 'stock_high' %}selected{% endif %}>Stock (High to Low)</option>
+                    <option value="stock_low" {% if current_sort == 'stock_low' %}selected{% endif %}>Stock (Low to High)</option>
+                    <option value="price_high" {% if current_sort == 'price_high' %}selected{% endif %}>Price (High to Low)</option>
+                    <option value="price_low" {% if current_sort == 'price_low' %}selected{% endif %}>Price (Low to High)</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="category" class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Category</label>
+                <select id="category" name="category" onchange="this.form.submit()" class="w-full p-3 bg-gray-50 border-none text-gray-800 text-sm font-bold rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all" {% if current_category == 'all' %}selected{% endif %}>All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.name }}" {% if current_category == category.name %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="batch" class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Batch</label>
+                <select id="batch" name="batch" onchange="this.form.submit()" class="w-full p-3 bg-gray-50 border-none text-gray-800 text-sm font-bold rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all" {% if current_batch == 'all' %}selected{% endif %}>All Products</option>
+                    {% for batch in batches %}
+                    <option value="{{ batch.id }}" {% if current_batch == batch.id|string %}selected{% endif %}>{{ batch.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="show_sold" class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Availability</label>
+                <select id="show_sold" name="show_sold" onchange="this.form.submit()" class="w-full p-3 bg-gray-50 border-none text-gray-800 text-sm font-bold rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="true" {% if show_sold %}selected{% endif %}>Show All (Including Sold)</option>
+                    <option value="false" {% if not show_sold %}selected{% endif %}>Hide Sold Products</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <div class="space-y-4">
+        {% if products_data %}
+        {% for data in products_data %}
+        {% set product = data.product %}
+        {% set available = data.available_units %}
+        {% set sold = data.total_sold %}
+        {% set is_sold_out = (product.status == 'sold' or available <= 0) %}
+        
+        <div class="glass-card p-6 rounded-[2.5rem] flex flex-col md:flex-row items-center transition-all hover:shadow-xl border border-gray-100 {% if is_sold_out %}opacity-60 grayscale-[0.5]{% endif %}">
+            
+            <a href="{{ url_for('product_detail', product_id=product.id) }}" class="relative flex-shrink-0 mb-4 md:mb-0 mr-8">
+                <img src="{{ data.first_image or 'https://placehold.co/100x100/eeeeee/333333?text=' + product.name[0] }}" 
+                     alt="{{ product.name }}" class="w-20 h-20 rounded-3xl object-cover border border-gray-100 shadow-sm">
+                {% if is_sold_out %}
+                <div class="absolute inset-0 bg-black/40 rounded-3xl flex items-center justify-center">
+                    <span class="text-[8px] font-black text-white uppercase tracking-widest">Sold</span>
+                </div>
+                {% endif %}
+            </a>
+
+            <div class="flex-1 grid grid-cols-2 md:grid-cols-3 gap-6 w-full">
+                <div class="col-span-2 md:col-span-1">
+                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="text-xl font-bold text-black hover:text-blue-600 transition">
+                        {{ product.name }}
+                    </a>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                        {{ product.category_info.name }}
+                        {% if product.batch_info %} • <span class="text-blue-500">Batch: {{ product.batch_info.name }}</span>{% endif %}
+                    </p>
+                </div>
+
+                <div class="flex space-x-8">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Stock</p>
+                        <p class="text-lg font-bold {% if available <= 5 and not is_sold_out %}text-orange-500{% else %}text-black{% endif %}">{{ available }}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Selling Price</p>
+                        <p class="text-lg font-bold text-black tabular-nums">{{ "{:,.0f}".format(product.final_price_rwf) }} <span class="text-[10px] text-gray-300">RWF</span></p>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase">Sold: {{ sold }}</p>
+                    </div>
+                </div>
+
+                <div class="col-span-2 md:col-span-1 flex items-center justify-end space-x-2">
+                    {% if not is_sold_out %}
+                    <button type="button" 
+                            data-product-id="{{ product.id }}" data-product-name="{{ product.name }}"
+                            data-available="{{ available }}" data-suggested-price="{{ product.final_price_rwf }}"
+                            class="sell-unit-btn px-5 py-3 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-105 transition shadow-lg">
+                        Sell Units
+                    </button>
+                    {% if sold == 0 %}
+                    <a href="{{ url_for('update_product', product_id=product.id) }}" class="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <span class="text-[10px] font-black text-gray-300 uppercase tracking-widest">Out of Stock</span>
+                    {% endif %}
+
+                    {% if sold == 0 %}
+                    <button type="button" class="delete-btn p-3 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition"
+                            data-product-name="{{ product.name }}" data-delete-url="{{ url_for('delete_product', product_id=product.id) }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    </button>
+                    {% else %}
+                    <button disabled class="p-3 bg-gray-50 text-gray-200 rounded-2xl cursor-not-allowed">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-20 glass-card rounded-[3rem]">
+            <p class="text-xl font-bold text-gray-400">No products found.</p>
+            <a href="{{ url_for('add_product') }}" class="text-blue-600 font-bold mt-4 inline-block">Add Your First Product Now</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="sell-modal" class="fixed inset-0 bg-white/60 backdrop-blur-xl hidden items-center justify-center z-50 p-4" onclick="closeModal(event)">
+    <div class="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-md border border-gray-100" onclick="event.stopPropagation()">
+        <header class="mb-8">
+            <h3 class="text-3xl font-black text-black tracking-tight">Record Sale</h3>
+            <p id="sell-modal-product-name" class="text-blue-600 font-bold mt-1"></p>
+            <p id="sell-modal-text" class="text-gray-400 text-xs mt-1 font-medium"></p>
+        </header>
+
+        <form id="sell-form" method="POST">
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-4">Units to Sell</label>
+                    <input type="number" id="units_to_sell" name="units_to_sell" min="1" required
+                           class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-lg">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-4">Total Price (RWF)</label>
+                    <input type="text" id="price_display" required class="apple-input w-full p-4 rounded-2xl outline-none font-bold text-lg" placeholder="0">
+                    <input type="hidden" id="sale_price_rwf" name="sale_price_rwf">
+                    <p class="text-[10px] text-gray-400 mt-2 italic ml-4">*Enter actual price paid by customer.</p>
+                </div>
+            </div>
+
+            <div class="mt-10 flex flex-col space-y-3">
+                <button type="submit" class="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:scale-[1.02] transition">Confirm & Save</button>
+                <button type="button" onclick="closeSellModal()" class="w-full py-4 text-gray-400 font-bold text-sm">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="delete-modal" class="fixed inset-0 bg-black/10 backdrop-blur-md hidden items-center justify-center z-50 p-4" onclick="closeModal(event)">
+    <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center" onclick="event.stopPropagation()">
+        <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round"></path></svg>
+        </div>
+        <h3 class="text-2xl font-black text-black">Delete Product?</h3>
+        <p class="text-gray-500 mt-2 text-sm leading-relaxed">Confirm deletion of <br><span id="product-name-to-delete" class="font-bold text-red-600"></span></p>
+        <form id="delete-form" method="POST" class="mt-8 flex flex-col space-y-3">
+            <button type="submit" class="w-full py-4 bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Yes, Delete</button>
+            <button type="button" onclick="closeDeleteModal()" class="w-full py-4 text-gray-400 font-bold text-sm">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sellModal = document.getElementById('sell-modal');
+    const deleteModal = document.getElementById('delete-modal');
+    const priceDisplay = document.getElementById('price_display');
+    const priceHidden = document.getElementById('sale_price_rwf');
+
+    // Comma Separator Logic
+    priceDisplay.addEventListener('input', function(e) {
+        let val = e.target.value.replace(/[^0-9]/g, '');
+        if (val === '') {
+            priceHidden.value = '';
+            e.target.value = '';
+            return;
+        }
+        priceHidden.value = val;
+        e.target.value = parseInt(val).toLocaleString();
+    });
+
+    // Close logic
+    window.closeSellModal = () => { sellModal.classList.replace('flex', 'hidden'); };
+    window.closeDeleteModal = () => { deleteModal.classList.replace('flex', 'hidden'); };
+
+    // Sell Modal Launcher
+    document.querySelectorAll('.sell-unit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const data = this.dataset;
+            // Set form action dynamically
+            document.getElementById('sell-form').action = "{{ url_for('sell_unit', product_id=0) }}".replace('0', data.productId);
+            document.getElementById('sell-modal-product-name').textContent = data.productName;
+            document.getElementById('sell-modal-text').textContent = `Stock: ${data.available} units remaining.`;
+            document.getElementById('units_to_sell').max = data.available;
+            document.getElementById('units_to_sell').value = 1;
+            
+            // Set price (formatted)
+            const suggested = Math.floor(data.suggestedPrice);
+            priceHidden.value = suggested;
+            priceDisplay.value = suggested.toLocaleString();
+
+            sellModal.classList.replace('hidden', 'flex');
+        });
+    });
+
+    // Delete Modal Launcher
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('product-name-to-delete').textContent = this.dataset.productName;
+            document.getElementById('delete-form').action = this.dataset.deleteUrl;
+            deleteModal.classList.replace('hidden', 'flex');
+        });
+    });
+
+    window.closeModal = (e) => {
+        if (e.target === sellModal) closeSellModal();
+        if (e.target === deleteModal) closeDeleteModal();
+    };
+});
+</script>
+{% endblock %}

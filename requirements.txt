@@ -1,0 +1,16 @@
+# Web Framework
+Flask==3.0.3
+gunicorn==21.2.0
+
+# Database (Supabase / Postgres)
+Flask-SQLAlchemy==3.1.1
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.29
+
+# Environment and Security
+python-dotenv==1.0.1
+Werkzeug==3.0.2
+
+# Images and API
+cloudinary==1.39.1
+requests==2.31.0
